@@ -162,8 +162,8 @@
           <div class="metrics">
             <div class="metric"><span class="metric-name">Breakeven exit price <span class="unit">USD</span></span><span class="metric-value emphasis" id="breakeven">$0.00</span></div>
             <div class="metric"><span class="metric-name">Gross P&amp;L</span><span class="metric-value" id="gross">$0.00</span></div>
-            <div class="metric"><span class="metric-name">Entry fee</span><span class="metric-value" id="entry-fee">$0.00</span></div>
-            <div class="metric"><span class="metric-name">Exit fee</span><span class="metric-value" id="exit-fee">$0.00</span></div>
+            <div class="metric"><span class="metric-name">Entry fee + GST</span><span class="metric-value" id="entry-fee">$0.00</span></div>
+            <div class="metric"><span class="metric-name">Exit fee + GST</span><span class="metric-value" id="exit-fee">$0.00</span></div>
             <div class="metric"><span class="metric-name">Total fees</span><span class="metric-value" id="total-fees">$0.00</span></div>
             <div class="metric"><span class="metric-name">GST on fees</span><span class="metric-value" id="gst-amount">$0.00</span></div>
             <div class="metric"><span class="metric-name">Total fees + GST</span><span class="metric-value" id="total-with-gst">$0.00</span></div>
@@ -195,7 +195,9 @@
         const exitFee = exit * qty * exitRate;
         const tradingFees = entryFee + exitFee;
         const gstRate = $('gst-enabled').checked ? num($('gst-rate')) / 100 : 0;
-        const gst = tradingFees * gstRate;
+        const entryGst = entryFee * gstRate;
+        const exitGst = exitFee * gstRate;
+        const gst = entryGst + exitGst;
         const gross = (exit - entry) * qty * (state.side === 'long' ? 1 : -1);
         const net = gross - tradingFees - gst;
         const effectiveEntryRate = entryRate * (1 + gstRate);
@@ -210,8 +212,8 @@
         $('net-caption').textContent = qty ? `After trading fees${gstRate ? ' + GST' : ''} · ${state.side === 'long' ? 'Long' : 'Short'} position` : 'Enter a quantity to calculate results';
         $('breakeven').textContent = `$${breakeven.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         $('gross').textContent = signedMoney(gross);
-        $('entry-fee').textContent = money(entryFee);
-        $('exit-fee').textContent = money(exitFee);
+        $('entry-fee').textContent = money(entryFee + entryGst);
+        $('exit-fee').textContent = money(exitFee + exitGst);
         $('total-fees').textContent = money(tradingFees);
         $('gst-amount').textContent = money(gst);
         $('total-with-gst').textContent = money(tradingFees + gst);
