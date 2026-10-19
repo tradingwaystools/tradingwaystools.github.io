@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1016">
+  <title>Tradingways — Trade P&amp;L Calculator</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1016;
+      --panel: #111922;
+      --panel-soft: #151f29;
+      --border: #26323d;
+      --muted: #8b9aa9;
+      --text: #e8eef4;
+      --green: #37d6a0;
+      --red: #ff7180;
+      --blue: #83aaff;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 50% -30%, #18283a 0, transparent 54%), var(--bg);
+      color: var(--text);
+    }
+    .shell { width: min(1100px, calc(100% - 40px)); margin: 0 auto; padding: 32px 0 52px; }
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 46px; }
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 720; letter-spacing: -.04em; font-size: 20px; }
+    .brand-mark { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; color: #07120f; background: var(--green); font-weight: 900; font-size: 18px; }
+    .header-note { font-size: 12px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+    .intro { margin-bottom: 26px; }
+    .eyebrow { color: var(--green); text-transform: uppercase; letter-spacing: .14em; font-size: 11px; font-weight: 700; }
+    h1 { margin: 9px 0 8px; font-size: clamp(30px, 5vw, 42px); letter-spacing: -.055em; line-height: 1.1; }
+    .intro p { margin: 0; color: var(--muted); font-size: 14px; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1.14fr) minmax(330px, .86fr); gap: 18px; align-items: start; }
+    .card { border: 1px solid var(--border); background: color-mix(in srgb, var(--panel) 95%, transparent); border-radius: 16px; overflow: hidden; box-shadow: 0 18px 55px #0002; }
+    .card-head { padding: 20px 22px 15px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .card-head h2 { margin: 0; font-size: 14px; font-weight: 650; }
+    .section-index { color: var(--muted); font: 11px var(--mono); }
+    .form-body { padding: 20px 22px 24px; }
+    .direction { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 22px; padding: 4px; border: 1px solid var(--border); background: #0c1218; border-radius: 11px; }
+    .direction button, .mode button { border: 0; font: inherit; cursor: pointer; transition: .16s ease; }
+    .direction button { border-radius: 8px; padding: 10px; background: transparent; color: var(--muted); font-size: 13px; font-weight: 650; }
+    .direction button[aria-pressed="true"][data-side="long"] { color: var(--green); background: #17332c; }
+    .direction button[aria-pressed="true"][data-side="short"] { color: var(--red); background: #382129; }
+    .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 14px; }
+    .field { min-width: 0; }
+    label, .field-label { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; color: #c3cdd6; font-size: 12px; font-weight: 560; }
+    .unit { color: var(--muted); font-size: 11px; font-weight: 450; }
+    .input-wrap { position: relative; }
+    input { width: 100%; height: 44px; border: 1px solid #2a3743; background: #0c131a; color: var(--text); border-radius: 9px; padding: 0 13px; outline: none; font: 14px var(--mono); transition: border .15s, box-shadow .15s; }
+    input:focus { border-color: #6f97ec; box-shadow: 0 0 0 3px #6f97ec20; }
+    input::-webkit-inner-spin-button, input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+    .mode-row { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding-top: 2px; }
+    .mode { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 4px; background: #0c131a; border: 1px solid #2a3743; border-radius: 9px; }
+    .mode button { padding: 7px 8px; border-radius: 6px; background: transparent; color: var(--muted); font-size: 11px; }
+    .mode button[aria-pressed="true"] { color: var(--text); background: #273441; }
+    .fee-note { margin-top: 17px; padding-top: 14px; border-top: 1px solid var(--border); color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .gst-box { grid-column: 1 / -1; padding: 14px; border: 1px solid #2a3743; border-radius: 10px; background: #0d151c; }
+    .gst-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
+    .gst-title { color: #d5dee7; font-size: 12px; font-weight: 650; }
+    .gst-subtitle { margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .switch { position: relative; width: 36px; height: 20px; flex: 0 0 auto; }
+    .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .switch span { position: absolute; inset: 0; border-radius: 99px; background: #34414d; cursor: pointer; transition: .15s; }
+    .switch span::before { content: ""; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; border-radius: 50%; background: white; transition: .15s; }
+    .switch input:checked + span { background: #168a69; }
+    .switch input:checked + span::before { transform: translateX(16px); }
+    .switch input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .gst-rate-row { display: flex; align-items: center; gap: 12px; }
+    .gst-rate-row label { margin: 0; min-width: 95px; }
+    .gst-rate-row input { height: 38px; max-width: 120px; }
+    .gst-help { color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .currency-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: end; margin-top: 16px; padding-top: 15px; border-top: 1px solid var(--border); }
+    .currency-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 4px; background: #0c131a; border: 1px solid #2a3743; border-radius: 9px; }
+    .currency-choice button { border: 0; padding: 8px; border-radius: 6px; background: transparent; color: var(--muted); font-family: inherit; font-size: 11px; cursor: pointer; }
+    .currency-choice button[aria-pressed="true"] { color: var(--text); background: #273441; }
+    .results { padding: 22px; }
+    .result-top { padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+    .result-label { color: var(--muted); font-size: 12px; }
+    .net { margin: 7px 0 5px; font: 650 clamp(32px, 5vw, 42px) var(--mono); letter-spacing: -.07em; }
+    .net.positive { color: var(--green); }
+    .net.negative { color: var(--red); }
+    .net.neutral { color: var(--text); }
+    .result-caption { color: var(--muted); font-size: 12px; }
+    .metrics { display: grid; gap: 0; }
+    .metric { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 0; border-bottom: 1px solid #202b35; }
+    .metric:last-child { border-bottom: 0; }
+    .metric-name { color: #aab7c3; font-size: 12px; }
+    .metric-value { text-align: right; font: 13px var(--mono); color: var(--text); }
+    .metric-value.emphasis { color: var(--blue); }
+    .formula { margin-top: 18px; padding: 13px 14px; border: 1px solid #263640; border-radius: 10px; background: #0d151c; }
+    .formula-title { font-size: 10px; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 7px; }
+    .formula code { color: #c6d4e2; font: 11px/1.7 var(--mono); white-space: normal; }
+    footer { margin-top: 16px; color: #667583; font-size: 11px; line-height: 1.6; }
+    @media (max-width: 760px) {
+      .shell { width: min(100% - 28px, 560px); padding-top: 22px; }
+      header { margin-bottom: 32px; }
+      .header-note { display: none; }
+      .layout { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 420px) {
+      .fields { gap: 14px 10px; }
+      .form-body, .results { padding: 18px 16px 20px; }
+      .card-head { padding: 17px 16px 14px; }
+      input { padding: 0 10px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand"><span class="brand-mark">↗</span><span>Tradingways</span></div>
+      <div class="header-note">Trade planning tool</div>
+    </header>
+    <section class="intro">
+      <div class="eyebrow">Know your numbers</div>
+      <h1>Trade P&amp;L calculator</h1>
+      <p>Estimate your net profit, fees, and fee-adjusted breakeven before you trade.</p>
+    </section>
+    <div class="layout">
+      <section class="card" aria-labelledby="trade-heading">
+        <div class="card-head"><h2 id="trade-heading">Trade details</h2><span class="section-index">01 / INPUTS</span></div>
+        <div class="form-body">
+          <div class="direction" role="group" aria-label="Position direction">
+            <button type="button" data-side="long" aria-pressed="true">↗ &nbsp;Long</button>
+            <button type="button" data-side="short" aria-pressed="false">↘ &nbsp;Short</button>
+          </div>
+          <div class="fields">
+            <div class="field"><label for="entry">Entry price <span class="unit">USD</span></label><input id="entry" type="number" min="0" step="any" value="65000" inputmode="decimal"></div>
+            <div class="field"><label for="exit">Exit price <span class="unit">USD</span></label><input id="exit" type="number" min="0" step="any" value="66500" inputmode="decimal"></div>
+            <div class="field"><label for="quantity">Quantity <span class="unit">units</span></label><input id="quantity" type="number" min="0" step="any" value="0.1" inputmode="decimal"></div>
+            <div class="field"><label for="maker">Maker fee <span class="unit">%</span></label><input id="maker" type="number" min="0" step="any" value="0.02" inputmode="decimal"></div>
+            <div class="field"><label for="taker">Taker fee <span class="unit">%</span></label><input id="taker" type="number" min="0" step="any" value="0.05" inputmode="decimal"></div>
+            <div class="mode-row">
+              <div><div class="field-label">Entry type</div><div class="mode" role="group" aria-label="Entry order type"><button type="button" data-kind="entry" data-value="maker" aria-pressed="true">Maker</button><button type="button" data-kind="entry" data-value="taker" aria-pressed="false">Taker</button></div></div>
+              <div><div class="field-label">Exit type</div><div class="mode" role="group" aria-label="Exit order type"><button type="button" data-kind="exit" data-value="maker" aria-pressed="false">Maker</button><button type="button" data-kind="exit" data-value="taker" aria-pressed="true">Taker</button></div></div>
+            </div>
+            <div class="gst-box">
+              <div class="gst-heading">
+                <div><div class="gst-title">India GST on trading fees</div><div class="gst-subtitle">Added to exchange fees, not trade value</div></div>
+                <label class="switch" aria-label="Include GST on trading fees"><input id="gst-enabled" type="checkbox" checked><span></span></label>
+              </div>
+              <div class="gst-rate-row"><label for="gst-rate">GST rate <span class="unit">%</span></label><input id="gst-rate" type="number" min="0" step="any" value="18" inputmode="decimal"><span class="gst-help">Default 18% · change to match your exchange invoice</span></div>
+            </div>
+          </div>
+          <div class="currency-row">
+            <div><div class="field-label">Display P&amp;L in</div><div class="currency-choice" role="group" aria-label="P and L display currency"><button type="button" data-currency="USD" aria-pressed="false">USD</button><button type="button" data-currency="INR" aria-pressed="true">INR</button></div></div>
+            <div class="field"><label for="usdt-rate">USDT / INR rate <span class="unit">₹ per USDT</span></label><input id="usdt-rate" type="number" min="0" step="any" value="102" inputmode="decimal"></div>
+          </div>
+          <div class="fee-note">USD amounts are converted using 1 USD = 1 USDT and your entered USDT/INR rate (₹102 is the starting value; update it to your exchange quote). Trading fees are charged on each leg’s notional value. GST is estimated on those fees only. Funding, slippage, TDS, and other taxes or charges are not included.</div>
+        </div>
+      </section>
+      <section class="card" aria-labelledby="results-heading" aria-live="polite">
+        <div class="card-head"><h2 id="results-heading">Your estimate</h2><span class="section-index">02 / RESULTS</span></div>
+        <div class="results">
+          <div class="result-top"><div class="result-label">Net profit / loss</div><div id="net" class="net positive">+$0.00</div><div id="net-caption" class="result-caption">After trading fees</div></div>
+          <div class="metrics">
+            <div class="metric"><span class="metric-name">Breakeven exit price <span class="unit">USD</span></span><span class="metric-value emphasis" id="breakeven">$0.00</span></div>
+            <div class="metric"><span class="metric-name">Gross P&amp;L</span><span class="metric-value" id="gross">$0.00</span></div>
+            <div class="metric"><span class="metric-name">Entry fee</span><span class="metric-value" id="entry-fee">$0.00</span></div>
+            <div class="metric"><span class="metric-name">Exit fee</span><span class="metric-value" id="exit-fee">$0.00</span></div>
+            <div class="metric"><span class="metric-name">Total fees</span><span class="metric-value" id="total-fees">$0.00</span></div>
+            <div class="metric"><span class="metric-name">GST on fees</span><span class="metric-value" id="gst-amount">$0.00</span></div>
+            <div class="metric"><span class="metric-name">Total fees + GST</span><span class="metric-value" id="total-with-gst">$0.00</span></div>
+            <div class="metric"><span class="metric-name">Return on entry notional</span><span class="metric-value" id="return">0.00%</span></div>
+          </div>
+          <div class="formula"><div class="formula-title">How breakeven is calculated</div><code id="formula">Entry cost + both trading fees, adjusted for position size</code></div>
+        </div>
+      </section>
+    </div>
+    <footer>For educational planning only. Actual exchange fee rules and execution prices may differ.<br>This is a helper tool prepared using ChatGPT Codex in 2026.</footer>
+  </main>
+  <script>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const inputs = ['entry', 'exit', 'quantity', 'maker', 'taker', 'gst-rate', 'usdt-rate'].map($);
+      const state = { side: 'long', entry: 'maker', exit: 'taker', currency: 'INR' };
+      const num = (el) => Math.max(0, Number(el.value) || 0);
+      const displayValue = (n) => state.currency === 'INR' ? n * num($('usdt-rate')) : n;
+      const currencySymbol = () => state.currency === 'INR' ? '₹' : '$';
+      const money = (n) => `${n < 0 ? '−' : ''}${currencySymbol()}${Math.abs(displayValue(n)).toLocaleString(state.currency === 'INR' ? 'en-IN' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const signedMoney = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${currencySymbol()}${Math.abs(displayValue(n)).toLocaleString(state.currency === 'INR' ? 'en-IN' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const price = (n) => `${currencySymbol()}${displayValue(n).toLocaleString(state.currency === 'INR' ? 'en-IN' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+      function calculate() {
+        const entry = num($('entry')), exit = num($('exit')), qty = num($('quantity'));
+        const maker = num($('maker')) / 100, taker = num($('taker')) / 100;
+        const entryRate = state.entry === 'maker' ? maker : taker;
+        const exitRate = state.exit === 'maker' ? maker : taker;
+        const entryFee = entry * qty * entryRate;
+        const exitFee = exit * qty * exitRate;
+        const tradingFees = entryFee + exitFee;
+        const gstRate = $('gst-enabled').checked ? num($('gst-rate')) / 100 : 0;
+        const gst = tradingFees * gstRate;
+        const gross = (exit - entry) * qty * (state.side === 'long' ? 1 : -1);
+        const net = gross - tradingFees - gst;
+        const effectiveEntryRate = entryRate * (1 + gstRate);
+        const effectiveExitRate = exitRate * (1 + gstRate);
+        // Solve net = 0 for the exit price, including the exit fee on that price.
+        const breakeven = qty && (1 + (state.side === 'long' ? -effectiveExitRate : effectiveExitRate)) !== 0
+          ? (entry * (state.side === 'long' ? 1 + effectiveEntryRate : 1 - effectiveEntryRate)) / (1 + (state.side === 'long' ? -effectiveExitRate : effectiveExitRate))
+          : 0;
+        const notional = entry * qty;
+        $('net').textContent = signedMoney(net);
+        $('net').className = `net ${net > 0.000001 ? 'positive' : net < -0.000001 ? 'negative' : 'neutral'}`;
+        $('net-caption').textContent = qty ? `After trading fees${gstRate ? ' + GST' : ''} · ${state.side === 'long' ? 'Long' : 'Short'} position` : 'Enter a quantity to calculate results';
+        $('breakeven').textContent = `$${breakeven.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        $('gross').textContent = signedMoney(gross);
+        $('entry-fee').textContent = money(entryFee);
+        $('exit-fee').textContent = money(exitFee);
+        $('total-fees').textContent = money(tradingFees);
+        $('gst-amount').textContent = money(gst);
+        $('total-with-gst').textContent = money(tradingFees + gst);
+        $('return').textContent = `${notional ? (net / notional * 100).toFixed(2) : '0.00'}%`;
+        const gstLabel = gstRate ? ` (fees × ${((1 + gstRate) * 100).toFixed(2)}% incl. GST)` : '';
+        $('formula').textContent = state.side === 'long'
+          ? `Exit BE = entry × (1 + entry fee) ÷ (1 − exit fee)${gstLabel} · ${state.entry} / ${state.exit}`
+          : `Exit BE = entry × (1 − entry fee) ÷ (1 + exit fee)${gstLabel} · ${state.entry} / ${state.exit}`;
+        document.querySelectorAll('[data-currency]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.currency === state.currency)));
+      }
+      inputs.forEach((input) => input.addEventListener('input', calculate));
+      $('gst-enabled').addEventListener('change', calculate);
+      document.querySelectorAll('[data-currency]').forEach((button) => button.addEventListener('click', () => {
+        state.currency = button.dataset.currency;
+        calculate();
+      }));
+      document.querySelectorAll('[data-side]').forEach((button) => button.addEventListener('click', () => {
+        state.side = button.dataset.side;
+        document.querySelectorAll('[data-side]').forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+        calculate();
+      }));
+      document.querySelectorAll('[data-kind]').forEach((button) => button.addEventListener('click', () => {
+        state[button.dataset.kind] = button.dataset.value;
+        document.querySelectorAll(`[data-kind="${button.dataset.kind}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+        calculate();
+      }));
+      calculate();
+    })();
+  </script>
+</body>
+</html>
