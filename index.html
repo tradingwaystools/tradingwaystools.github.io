@@ -79,6 +79,24 @@
     .currency-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 4px; background: #0c131a; border: 1px solid #2a3743; border-radius: 9px; }
     .currency-choice button { border: 0; padding: 8px; border-radius: 6px; background: transparent; color: var(--muted); font-family: inherit; font-size: 11px; cursor: pointer; }
     .currency-choice button[aria-pressed="true"] { color: var(--text); background: #273441; }
+    .funding-box { grid-column: 1 / -1; padding: 14px; border: 1px solid #2a3743; border-radius: 10px; background: #0d151c; }
+    .funding-head, .funding-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .funding-head { margin-bottom: 10px; }
+    .funding-title { color: #d5dee7; font-size: 12px; font-weight: 650; }
+    .funding-hint { margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .funding-tools { display: flex; align-items: center; gap: 8px; }
+    .funding-currency { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px; background: #0c131a; border: 1px solid #2a3743; border-radius: 8px; }
+    .funding-currency button { padding: 5px 8px; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font-family: inherit; font-size: 10px; cursor: pointer; }
+    .funding-currency button[aria-pressed="true"] { color: var(--text); background: #273441; }
+    .funding-list { display: grid; gap: 8px; }
+    .funding-row input { height: 38px; }
+    .funding-row label { margin: 0; min-width: 78px; }
+    .remove-funding, .add-funding, .reset-button { border: 1px solid #34424e; border-radius: 7px; background: #17212a; color: #c4d0da; font: inherit; cursor: pointer; }
+    .remove-funding { width: 34px; height: 34px; flex: 0 0 auto; color: #b6c1cb; }
+    .add-funding { padding: 7px 10px; font-size: 11px; white-space: nowrap; }
+    .remove-funding:hover, .add-funding:hover, .reset-button:hover { border-color: #657889; background: #202d38; }
+    .reset-button { padding: 7px 10px; font-size: 11px; }
+    .save-indicator { color: var(--muted); font-size: 10px; margin-left: auto; margin-right: 10px; }
     .results { padding: 22px; }
     .result-top { padding-bottom: 20px; border-bottom: 1px solid var(--border); }
     .result-label { color: var(--muted); font-size: 12px; }
@@ -124,7 +142,7 @@
     </section>
     <div class="layout">
       <section class="card" aria-labelledby="trade-heading">
-        <div class="card-head"><h2 id="trade-heading">Trade details</h2><span class="section-index">01 / INPUTS</span></div>
+        <div class="card-head"><h2 id="trade-heading">Trade details</h2><span class="save-indicator" id="save-status">Saved in this browser</span><button class="reset-button" id="reset" type="button">Reset</button></div>
         <div class="form-body">
           <div class="direction" role="group" aria-label="Position direction">
             <button type="button" data-side="long" aria-pressed="true">↗ &nbsp;Long</button>
@@ -147,12 +165,16 @@
               </div>
               <div class="gst-rate-row"><label for="gst-rate">GST rate <span class="unit">%</span></label><input id="gst-rate" type="number" min="0" step="any" value="18" inputmode="decimal"><span class="gst-help">Default 18% · change to match your exchange invoice</span></div>
             </div>
+            <div class="funding-box">
+              <div class="funding-head"><div><div class="funding-title">Funding fees</div><div class="funding-hint">Positive = paid · negative = received</div></div><div class="funding-tools"><div class="funding-currency" role="group" aria-label="Funding fee input currency"><button type="button" data-funding-currency="USD" aria-pressed="false">USD</button><button type="button" data-funding-currency="INR" aria-pressed="true">INR</button></div><button class="add-funding" id="add-funding" type="button">+ Add fee</button></div></div>
+              <div class="funding-list" id="funding-list"></div>
+            </div>
           </div>
           <div class="currency-row">
             <div><div class="field-label">Display P&amp;L in</div><div class="currency-choice" role="group" aria-label="P and L display currency"><button type="button" data-currency="USD" aria-pressed="false">USD</button><button type="button" data-currency="INR" aria-pressed="true">INR</button></div></div>
             <div class="field"><label for="usdt-rate">USDT / INR rate <span class="unit">₹ per USDT</span></label><input id="usdt-rate" type="number" min="0" step="any" value="102" inputmode="decimal"></div>
           </div>
-          <div class="fee-note">USD amounts are converted using 1 USD = 1 USDT and your entered USDT/INR rate (₹102 is the starting value; update it to your exchange quote). Trading fees are charged on each leg’s notional value. GST is estimated on those fees only. Funding, slippage, TDS, and other taxes or charges are not included.</div>
+          <div class="fee-note">Your inputs and funding entries are saved in this browser until you press Reset. USD amounts are converted using 1 USD = 1 USDT and your entered USDT/INR rate (₹102 is the starting value; update it to your exchange quote). Trading fees are charged on each leg’s notional value. GST is estimated on those fees only. Slippage, TDS, and other taxes or charges are not included.</div>
         </div>
       </section>
       <section class="card" aria-labelledby="results-heading" aria-live="polite">
@@ -167,6 +189,8 @@
             <div class="metric"><span class="metric-name">Total fees</span><span class="metric-value" id="total-fees">$0.00</span></div>
             <div class="metric"><span class="metric-name">GST on fees</span><span class="metric-value" id="gst-amount">$0.00</span></div>
             <div class="metric"><span class="metric-name">Total fees + GST</span><span class="metric-value" id="total-with-gst">$0.00</span></div>
+            <div class="metric"><span class="metric-name">Funding fees (net)</span><span class="metric-value" id="funding-total">$0.00</span></div>
+            <div class="metric"><span class="metric-name">Total costs incl. funding</span><span class="metric-value" id="total-costs">$0.00</span></div>
             <div class="metric"><span class="metric-name">Return on entry notional</span><span class="metric-value" id="return">0.00%</span></div>
           </div>
           <div class="formula"><div class="formula-title">How breakeven is calculated</div><code id="formula">Entry cost + both trading fees, adjusted for position size</code></div>
@@ -179,13 +203,62 @@
     (() => {
       const $ = (id) => document.getElementById(id);
       const inputs = ['entry', 'exit', 'quantity', 'maker', 'taker', 'gst-rate', 'usdt-rate'].map($);
-      const state = { side: 'long', entry: 'maker', exit: 'taker', currency: 'INR' };
+      const state = { side: 'long', entry: 'maker', exit: 'taker', currency: 'INR', fundingCurrency: 'INR' };
+      const storageKey = 'tradingways-trade-calculator-v1';
+      let fundingFees = [0];
       const num = (el) => Math.max(0, Number(el.value) || 0);
       const displayValue = (n) => state.currency === 'INR' ? n * num($('usdt-rate')) : n;
       const currencySymbol = () => state.currency === 'INR' ? '₹' : '$';
       const money = (n) => `${n < 0 ? '−' : ''}${currencySymbol()}${Math.abs(displayValue(n)).toLocaleString(state.currency === 'INR' ? 'en-IN' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       const signedMoney = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${currencySymbol()}${Math.abs(displayValue(n)).toLocaleString(state.currency === 'INR' ? 'en-IN' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       const price = (n) => `${currencySymbol()}${displayValue(n).toLocaleString(state.currency === 'INR' ? 'en-IN' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+      const signedValue = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${money(Math.abs(n))}`;
+      function saveData() {
+        const data = {
+          fields: Object.fromEntries(['entry', 'exit', 'quantity', 'maker', 'taker', 'gst-rate', 'usdt-rate'].map((id) => [id, $(id).value])),
+          gstEnabled: $('gst-enabled').checked,
+          state,
+          fundingFees
+        };
+        try { localStorage.setItem(storageKey, JSON.stringify(data)); $('save-status').textContent = 'Saved in this browser'; }
+        catch { $('save-status').textContent = 'Browser storage unavailable'; }
+      }
+      function restoreData() {
+        try {
+          const data = JSON.parse(localStorage.getItem(storageKey) || 'null');
+          if (!data) return;
+          if (data.fields) Object.entries(data.fields).forEach(([id, value]) => { if ($(id) && typeof value === 'string') $(id).value = value; });
+          if (typeof data.gstEnabled === 'boolean') $('gst-enabled').checked = data.gstEnabled;
+          if (data.state) {
+            if (['long', 'short'].includes(data.state.side)) state.side = data.state.side;
+            if (['maker', 'taker'].includes(data.state.entry)) state.entry = data.state.entry;
+            if (['maker', 'taker'].includes(data.state.exit)) state.exit = data.state.exit;
+            if (['USD', 'INR'].includes(data.state.currency)) state.currency = data.state.currency;
+            if (['USD', 'INR'].includes(data.state.fundingCurrency)) state.fundingCurrency = data.state.fundingCurrency;
+          }
+          if (Array.isArray(data.fundingFees) && data.fundingFees.every((value) => Number.isFinite(Number(value)))) fundingFees = data.fundingFees.map(Number);
+        } catch { $('save-status').textContent = 'Using current values'; }
+      }
+      function renderFunding() {
+        const list = $('funding-list');
+        list.replaceChildren();
+        fundingFees.forEach((amount, index) => {
+          const row = document.createElement('div');
+          row.className = 'funding-row';
+          const label = document.createElement('label');
+          label.htmlFor = `funding-${index}`;
+          label.textContent = `Event ${index + 1}`;
+          const input = document.createElement('input');
+          input.type = 'number'; input.step = 'any'; input.inputMode = 'decimal';
+          input.id = `funding-${index}`; input.value = String(amount); input.setAttribute('aria-label', `Funding fee event ${index + 1} in ${state.fundingCurrency}`);
+          input.addEventListener('input', () => { fundingFees[index] = Number(input.value) || 0; calculate(); saveData(); });
+          const remove = document.createElement('button');
+          remove.type = 'button'; remove.className = 'remove-funding'; remove.textContent = '×'; remove.setAttribute('aria-label', `Remove funding event ${index + 1}`);
+          remove.addEventListener('click', () => { fundingFees.splice(index, 1); renderFunding(); calculate(); saveData(); });
+          row.append(label, input, remove);
+          list.append(row);
+        });
+      }
       function calculate() {
         const entry = num($('entry')), exit = num($('exit')), qty = num($('quantity'));
         const maker = num($('maker')) / 100, taker = num($('taker')) / 100;
@@ -198,49 +271,75 @@
         const entryGst = entryFee * gstRate;
         const exitGst = exitFee * gstRate;
         const gst = entryGst + exitGst;
+        const fundingTotal = fundingFees.reduce((sum, amount) => sum + (state.fundingCurrency === 'INR' ? amount / (num($('usdt-rate')) || 1) : amount), 0);
         const gross = (exit - entry) * qty * (state.side === 'long' ? 1 : -1);
-        const net = gross - tradingFees - gst;
+        const net = gross - tradingFees - gst - fundingTotal;
         const effectiveEntryRate = entryRate * (1 + gstRate);
         const effectiveExitRate = exitRate * (1 + gstRate);
         // Solve net = 0 for the exit price, including the exit fee on that price.
         const breakeven = qty && (1 + (state.side === 'long' ? -effectiveExitRate : effectiveExitRate)) !== 0
-          ? (entry * (state.side === 'long' ? 1 + effectiveEntryRate : 1 - effectiveEntryRate)) / (1 + (state.side === 'long' ? -effectiveExitRate : effectiveExitRate))
+          ? (entry * (state.side === 'long' ? 1 + effectiveEntryRate : 1 - effectiveEntryRate) + (state.side === 'long' ? fundingTotal / qty : -fundingTotal / qty)) / (1 + (state.side === 'long' ? -effectiveExitRate : effectiveExitRate))
           : 0;
         const notional = entry * qty;
         $('net').textContent = signedMoney(net);
         $('net').className = `net ${net > 0.000001 ? 'positive' : net < -0.000001 ? 'negative' : 'neutral'}`;
-        $('net-caption').textContent = qty ? `After trading fees${gstRate ? ' + GST' : ''} · ${state.side === 'long' ? 'Long' : 'Short'} position` : 'Enter a quantity to calculate results';
-        $('breakeven').textContent = `$${breakeven.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        $('net-caption').textContent = qty ? `After trading fees${gstRate ? ' + GST' : ''} and funding · ${state.side === 'long' ? 'Long' : 'Short'} position` : 'Enter a quantity to calculate results';
+        // Round the displayed threshold upward so it does not imply a price below breakeven.
+        const breakevenRoundedUp = Math.ceil((breakeven - Number.EPSILON) * 10000) / 10000;
+        $('breakeven').textContent = `$${breakevenRoundedUp.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
         $('gross').textContent = signedMoney(gross);
         $('entry-fee').textContent = money(entryFee + entryGst);
         $('exit-fee').textContent = money(exitFee + exitGst);
         $('total-fees').textContent = money(tradingFees);
         $('gst-amount').textContent = money(gst);
         $('total-with-gst').textContent = money(tradingFees + gst);
+        $('funding-total').textContent = signedValue(fundingTotal);
+        $('total-costs').textContent = signedValue(tradingFees + gst + fundingTotal);
         $('return').textContent = `${notional ? (net / notional * 100).toFixed(2) : '0.00'}%`;
         const gstLabel = gstRate ? ` (fees × ${((1 + gstRate) * 100).toFixed(2)}% incl. GST)` : '';
         $('formula').textContent = state.side === 'long'
-          ? `Exit BE = entry × (1 + entry fee) ÷ (1 − exit fee)${gstLabel} · ${state.entry} / ${state.exit}`
-          : `Exit BE = entry × (1 − entry fee) ÷ (1 + exit fee)${gstLabel} · ${state.entry} / ${state.exit}`;
+          ? `Exit BE = [entry × (1 + entry fee) + funding ÷ qty] ÷ (1 − exit fee)${gstLabel} · ${state.entry} / ${state.exit}`
+          : `Exit BE = [entry × (1 − entry fee) − funding ÷ qty] ÷ (1 + exit fee)${gstLabel} · ${state.entry} / ${state.exit}`;
         document.querySelectorAll('[data-currency]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.currency === state.currency)));
+        document.querySelectorAll('[data-funding-currency]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.fundingCurrency === state.fundingCurrency)));
+        document.querySelectorAll('[data-side]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.side === state.side)));
+        document.querySelectorAll('[data-kind]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.value === state[button.dataset.kind])));
       }
-      inputs.forEach((input) => input.addEventListener('input', calculate));
-      $('gst-enabled').addEventListener('change', calculate);
+      restoreData();
+      renderFunding();
+      inputs.forEach((input) => input.addEventListener('input', () => { calculate(); saveData(); }));
+      $('gst-enabled').addEventListener('change', () => { calculate(); saveData(); });
       document.querySelectorAll('[data-currency]').forEach((button) => button.addEventListener('click', () => {
         state.currency = button.dataset.currency;
-        calculate();
+        calculate(); saveData();
+      }));
+      document.querySelectorAll('[data-funding-currency]').forEach((button) => button.addEventListener('click', () => {
+        const nextCurrency = button.dataset.fundingCurrency;
+        if (nextCurrency === state.fundingCurrency) return;
+        const rate = num($('usdt-rate')) || 1;
+        fundingFees = fundingFees.map((amount) => state.fundingCurrency === 'INR' ? amount / rate : amount * rate);
+        state.fundingCurrency = nextCurrency;
+        renderFunding(); calculate(); saveData();
       }));
       document.querySelectorAll('[data-side]').forEach((button) => button.addEventListener('click', () => {
         state.side = button.dataset.side;
         document.querySelectorAll('[data-side]').forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
-        calculate();
+        calculate(); saveData();
       }));
       document.querySelectorAll('[data-kind]').forEach((button) => button.addEventListener('click', () => {
         state[button.dataset.kind] = button.dataset.value;
         document.querySelectorAll(`[data-kind="${button.dataset.kind}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
-        calculate();
+        calculate(); saveData();
       }));
-      calculate();
+      $('add-funding').addEventListener('click', () => { fundingFees.push(0); renderFunding(); calculate(); saveData(); });
+      $('reset').addEventListener('click', () => {
+        try { localStorage.removeItem(storageKey); } catch { /* Reset the current page even if storage is blocked. */ }
+        ['entry', 'exit', 'quantity', 'maker', 'taker', 'gst-rate', 'usdt-rate'].forEach((id) => { $(id).value = $(id).defaultValue; });
+        $('gst-enabled').checked = true;
+        state.side = 'long'; state.entry = 'maker'; state.exit = 'taker'; state.currency = 'INR'; state.fundingCurrency = 'INR';
+        fundingFees = [0]; renderFunding(); calculate(); $('save-status').textContent = 'Reset · defaults loaded';
+      });
+      calculate(); saveData();
     })();
   </script>
 </body>
