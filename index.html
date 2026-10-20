@@ -152,9 +152,9 @@
             <button type="button" data-side="short" aria-pressed="false">↘ &nbsp;Short</button>
           </div>
           <div class="fields">
-            <div class="field"><label for="entry">Entry price <span class="unit">USD</span></label><input id="entry" type="number" min="0" step="any" value="65000" inputmode="decimal"></div>
-            <div class="field"><label for="exit">Exit price <span class="unit">USD</span></label><input id="exit" type="number" min="0" step="any" value="66500" inputmode="decimal"></div>
-            <div class="field"><label for="quantity">Quantity <span class="unit">units</span></label><input id="quantity" type="number" min="0" step="any" value="0.1" inputmode="decimal"></div>
+            <div class="field"><label for="entry">Entry price <span class="unit">USD</span></label><input id="entry" type="number" min="0" step="any" value="" inputmode="decimal"></div>
+            <div class="field"><label for="exit">Exit price <span class="unit">USD</span></label><input id="exit" type="number" min="0" step="any" value="" inputmode="decimal"></div>
+            <div class="field"><label for="quantity">Quantity <span class="unit">units</span></label><input id="quantity" type="number" min="0" step="any" value="" inputmode="decimal"></div>
             <div class="field"><label for="maker">Maker fee <span class="unit">%</span></label><input id="maker" type="number" min="0" step="any" value="0.02" inputmode="decimal"></div>
             <div class="field"><label for="taker">Taker fee <span class="unit">%</span></label><input id="taker" type="number" min="0" step="any" value="0.05" inputmode="decimal"></div>
             <div class="mode-row">
@@ -208,7 +208,7 @@
       const inputs = ['entry', 'exit', 'quantity', 'maker', 'taker', 'gst-rate', 'usdt-rate'].map($);
       const state = { side: 'long', entry: 'maker', exit: 'taker', currency: 'INR', fundingCurrency: 'INR' };
       const storageKey = 'tradingways-trade-calculator-v1';
-      let fundingFees = [0];
+      let fundingFees = [''];
       const num = (el) => Math.max(0, Number(el.value) || 0);
       const displayValue = (n) => state.currency === 'INR' ? n * num($('usdt-rate')) : n;
       const currencySymbol = () => state.currency === 'INR' ? '₹' : '$';
@@ -239,7 +239,7 @@
             if (['USD', 'INR'].includes(data.state.currency)) state.currency = data.state.currency;
             if (['USD', 'INR'].includes(data.state.fundingCurrency)) state.fundingCurrency = data.state.fundingCurrency;
           }
-          if (Array.isArray(data.fundingFees) && data.fundingFees.every((value) => Number.isFinite(Number(value)))) fundingFees = data.fundingFees.map(Number);
+          if (Array.isArray(data.fundingFees) && data.fundingFees.every((value) => value === '' || Number.isFinite(Number(value)))) fundingFees = data.fundingFees.map((value) => value === '' ? '' : Number(value));
         } catch { $('save-status').textContent = 'Using current values'; }
       }
       function renderFunding() {
@@ -254,14 +254,14 @@
           const input = document.createElement('input');
           input.type = 'number'; input.step = 'any'; input.inputMode = 'decimal';
           input.min = '0';
-          input.id = `funding-${index}`; input.value = String(Math.abs(amount)); input.setAttribute('aria-label', `Funding fee event ${index + 1} amount in ${state.fundingCurrency}`);
+          input.id = `funding-${index}`; input.value = amount === '' ? '' : String(Math.abs(amount)); input.setAttribute('aria-label', `Funding fee event ${index + 1} amount in ${state.fundingCurrency}`);
           const operation = document.createElement('select');
           operation.setAttribute('aria-label', `Funding fee event ${index + 1} operation`);
           operation.innerHTML = '<option value="add">Addition (cost)</option><option value="deduct">Deduction (credit)</option>';
           operation.value = amount < 0 ? 'deduct' : 'add';
           const updateFundingValue = () => {
             const magnitude = Math.abs(Number(input.value) || 0);
-            fundingFees[index] = operation.value === 'deduct' ? -magnitude : magnitude;
+            fundingFees[index] = input.value === '' ? '' : operation.value === 'deduct' ? -magnitude : magnitude;
             calculate(); saveData();
           };
           input.addEventListener('input', updateFundingValue);
@@ -288,7 +288,10 @@
         const entryGst = entryFee * gstRate;
         const exitGst = exitFee * gstRate;
         const gst = entryGst + exitGst;
-        const fundingTotal = fundingFees.reduce((sum, amount) => sum + (state.fundingCurrency === 'INR' ? amount / (num($('usdt-rate')) || 1) : amount), 0);
+        const fundingTotal = fundingFees.reduce((sum, amount) => {
+          const value = Number(amount) || 0;
+          return sum + (state.fundingCurrency === 'INR' ? value / (num($('usdt-rate')) || 1) : value);
+        }, 0);
         const gross = (exit - entry) * qty * (state.side === 'long' ? 1 : -1);
         const net = gross - tradingFees - gst - fundingTotal;
         const effectiveEntryRate = entryRate * (1 + gstRate);
@@ -334,7 +337,7 @@
         const nextCurrency = button.dataset.fundingCurrency;
         if (nextCurrency === state.fundingCurrency) return;
         const rate = num($('usdt-rate')) || 1;
-        fundingFees = fundingFees.map((amount) => state.fundingCurrency === 'INR' ? amount / rate : amount * rate);
+        fundingFees = fundingFees.map((amount) => amount === '' ? '' : state.fundingCurrency === 'INR' ? amount / rate : amount * rate);
         state.fundingCurrency = nextCurrency;
         renderFunding(); calculate(); saveData();
       }));
@@ -348,13 +351,10 @@
         document.querySelectorAll(`[data-kind="${button.dataset.kind}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
         calculate(); saveData();
       }));
-      $('add-funding').addEventListener('click', () => { fundingFees.push(0); renderFunding(); calculate(); saveData(); });
+      $('add-funding').addEventListener('click', () => { fundingFees.push(''); renderFunding(); calculate(); saveData(); });
       $('reset').addEventListener('click', () => {
-        try { localStorage.removeItem(storageKey); } catch { /* Reset the current page even if storage is blocked. */ }
-        ['entry', 'exit', 'quantity', 'maker', 'taker', 'gst-rate', 'usdt-rate'].forEach((id) => { $(id).value = $(id).defaultValue; });
-        $('gst-enabled').checked = true;
-        state.side = 'long'; state.entry = 'maker'; state.exit = 'taker'; state.currency = 'INR'; state.fundingCurrency = 'INR';
-        fundingFees = [0]; renderFunding(); calculate(); $('save-status').textContent = 'Reset · defaults loaded';
+        ['entry', 'exit', 'quantity'].forEach((id) => { $(id).value = ''; });
+        fundingFees = ['']; renderFunding(); calculate(); saveData();
       });
       calculate(); saveData();
     })();
