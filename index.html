@@ -80,7 +80,8 @@
     .currency-choice button { border: 0; padding: 8px; border-radius: 6px; background: transparent; color: var(--muted); font-family: inherit; font-size: 11px; cursor: pointer; }
     .currency-choice button[aria-pressed="true"] { color: var(--text); background: #273441; }
     .funding-box { grid-column: 1 / -1; padding: 14px; border: 1px solid #2a3743; border-radius: 10px; background: #0d151c; }
-    .funding-head, .funding-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .funding-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .funding-row { display: grid; grid-template-columns: minmax(0, 1fr) 34px; gap: 7px 8px; }
     .funding-head { margin-bottom: 10px; }
     .funding-title { color: #d5dee7; font-size: 12px; font-weight: 650; }
     .funding-hint { margin-top: 3px; color: var(--muted); font-size: 10px; }
@@ -89,8 +90,10 @@
     .funding-currency button { padding: 5px 8px; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font-family: inherit; font-size: 10px; cursor: pointer; }
     .funding-currency button[aria-pressed="true"] { color: var(--text); background: #273441; }
     .funding-list { display: grid; gap: 8px; }
-    .funding-row input { height: 38px; }
-    .funding-row label { margin: 0; min-width: 78px; }
+    .funding-row input { height: 38px; min-width: 0; }
+    .funding-row label { margin: 0; grid-column: 1; }
+    .funding-controls { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 8px; grid-column: 1 / -1; }
+    .funding-row select { height: 38px; min-width: 0; padding: 0 8px; border: 1px solid #2a3743; border-radius: 8px; background: #0c131a; color: var(--text); font-family: inherit; font-size: 11px; }
     .remove-funding, .add-funding, .reset-button { border: 1px solid #34424e; border-radius: 7px; background: #17212a; color: #c4d0da; font: inherit; cursor: pointer; }
     .remove-funding { width: 34px; height: 34px; flex: 0 0 auto; color: #b6c1cb; }
     .add-funding { padding: 7px 10px; font-size: 11px; white-space: nowrap; }
@@ -166,7 +169,7 @@
               <div class="gst-rate-row"><label for="gst-rate">GST rate <span class="unit">%</span></label><input id="gst-rate" type="number" min="0" step="any" value="18" inputmode="decimal"><span class="gst-help">Default 18% · change to match your exchange invoice</span></div>
             </div>
             <div class="funding-box">
-              <div class="funding-head"><div><div class="funding-title">Funding fees</div><div class="funding-hint">Positive = paid · negative = received</div></div><div class="funding-tools"><div class="funding-currency" role="group" aria-label="Funding fee input currency"><button type="button" data-funding-currency="USD" aria-pressed="false">USD</button><button type="button" data-funding-currency="INR" aria-pressed="true">INR</button></div><button class="add-funding" id="add-funding" type="button">+ Add fee</button></div></div>
+              <div class="funding-head"><div><div class="funding-title">Funding fees</div><div class="funding-hint">Addition is a cost deducted from P&amp;L; deduction is funding received, added to P&amp;L</div></div><div class="funding-tools"><div class="funding-currency" role="group" aria-label="Funding fee input currency"><button type="button" data-funding-currency="USD" aria-pressed="false">USD</button><button type="button" data-funding-currency="INR" aria-pressed="true">INR</button></div><button class="add-funding" id="add-funding" type="button">+ Add fee</button></div></div>
               <div class="funding-list" id="funding-list"></div>
             </div>
           </div>
@@ -250,12 +253,26 @@
           label.textContent = `Event ${index + 1}`;
           const input = document.createElement('input');
           input.type = 'number'; input.step = 'any'; input.inputMode = 'decimal';
-          input.id = `funding-${index}`; input.value = String(amount); input.setAttribute('aria-label', `Funding fee event ${index + 1} in ${state.fundingCurrency}`);
-          input.addEventListener('input', () => { fundingFees[index] = Number(input.value) || 0; calculate(); saveData(); });
+          input.min = '0';
+          input.id = `funding-${index}`; input.value = String(Math.abs(amount)); input.setAttribute('aria-label', `Funding fee event ${index + 1} amount in ${state.fundingCurrency}`);
+          const operation = document.createElement('select');
+          operation.setAttribute('aria-label', `Funding fee event ${index + 1} operation`);
+          operation.innerHTML = '<option value="add">Addition (cost)</option><option value="deduct">Deduction (credit)</option>';
+          operation.value = amount < 0 ? 'deduct' : 'add';
+          const updateFundingValue = () => {
+            const magnitude = Math.abs(Number(input.value) || 0);
+            fundingFees[index] = operation.value === 'deduct' ? -magnitude : magnitude;
+            calculate(); saveData();
+          };
+          input.addEventListener('input', updateFundingValue);
+          operation.addEventListener('change', updateFundingValue);
           const remove = document.createElement('button');
           remove.type = 'button'; remove.className = 'remove-funding'; remove.textContent = '×'; remove.setAttribute('aria-label', `Remove funding event ${index + 1}`);
           remove.addEventListener('click', () => { fundingFees.splice(index, 1); renderFunding(); calculate(); saveData(); });
-          row.append(label, input, remove);
+          const controls = document.createElement('div');
+          controls.className = 'funding-controls';
+          controls.append(operation, input);
+          row.append(label, remove, controls);
           list.append(row);
         });
       }
