@@ -117,7 +117,9 @@
     .formula { margin-top: 18px; padding: 13px 14px; border: 1px solid #263640; border-radius: 10px; background: #0d151c; }
     .formula-title { font-size: 10px; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 7px; }
     .formula code { color: #c6d4e2; font: 11px/1.7 var(--mono); white-space: normal; }
-    footer { margin-top: 16px; color: #667583; font-size: 11px; line-height: 1.6; }
+    footer { margin-top: 16px; color: #667583; font-size: 11px; line-height: 1.6; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+    .footer-note { min-width: 0; }
+    .visitor-count { display: inline-block; min-width: 4ch; text-align: right; }
     @media (max-width: 760px) {
       .shell { width: min(100% - 28px, 560px); padding-top: 22px; }
       header { margin-bottom: 32px; }
@@ -200,8 +202,9 @@
         </div>
       </section>
     </div>
-    <footer>For educational planning only. Actual exchange fee rules and execution prices may differ.<br>This is a helper tool prepared using ChatGPT Codex in 2026.</footer>
+    <footer><div class="footer-note">For educational planning only. Actual exchange fee rules and execution prices may differ.<br>This is a helper tool prepared using ChatGPT Codex in 2026.</div><span class="counterapi visitor-count" ns="tradingways-tools" action="view" key="global-unique-visitors" unique="true" noCss="true" noIcon="true" noLink="true" aria-label="Unique visitor count">Loading…</span></footer>
   </main>
+  <script async src="https://counterapi.com/c.js?ns=tradingways-tools"></script>
   <script>
     (() => {
       const $ = (id) => document.getElementById(id);
